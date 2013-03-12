@@ -16,6 +16,7 @@ class S3AltOutputTest < Test::Unit::TestCase
     s3_bucket test_bucket
     path log
     utc
+    flush_interval 3s
     buffer_type memory
   ]
 
@@ -37,6 +38,7 @@ class S3AltOutputTest < Test::Unit::TestCase
     assert_equal 'test_key_id', d.instance.aws_key_id
     assert_equal 'test_sec_key', d.instance.aws_sec_key
     assert_equal 'test_bucket', d.instance.s3_bucket
+    assert_equal 3, d.instance.flush_interval
     assert_equal 'log', d.instance.path
     assert d.instance.instance_variable_get(:@use_ssl)
   end
@@ -213,6 +215,64 @@ class S3AltOutputTest < Test::Unit::TestCase
     # Finally, the instance of S3AltOutput is initialized and then invoked
     d.run
   end
+
+  S3ALT_CONF = %[
+    s3_object_key_format %{path}/%{time_slice}/%{time_slice}_%{index0}-%{this_uuid}-%{pid}.%{file_extension}
+    time_slice_format %Y%m%d
+  ]
+
+  def test_write_with_custom_s3alt_object_key_format
+    # Assert content of event logs which are being sent to S3
+    s3obj = flexmock(AWS::S3::S3Object)
+    s3obj.should_receive(:exists?).with_any_args.
+      and_return { false }
+    s3obj.should_receive(:write).with(
+      on { |pathname|
+        data = nil
+        # Event logs are compressed in GZip
+        pathname.open { |f|
+          gz = Zlib::GzipReader.new(f)
+          data = gz.read
+          gz.close
+        }
+        assert_equal %[2011-01-02T13:14:15Z\ttest\t{"a":1}\n] +
+                         %[2011-01-02T13:14:15Z\ttest\t{"a":2}\n],
+                     data
+
+        pathname.to_s.match(%r|s3alt-|)
+      },
+      {:content_type=>"application/x-gzip"})
+
+    # We must use TimeSlicedOutputTestDriver instead of BufferedOutputTestDriver,
+    # to make assertions on chunks' keys
+    d = create_time_sliced_driver(S3ALT_CONF)
+
+    # Assert the key of S3Object, which event logs are stored in
+    s3obj_col = flexmock(AWS::S3::ObjectCollection)
+    s3obj_col.should_receive(:[]).with(
+      on { |key|
+        key == "log/20110102/20110102_0000-#{d.instance.this_uuid}-#{$$}.gz"
+      }).
+      and_return {
+        s3obj
+      }
+
+    # Partial mock the S3Bucket, not to make an actual connection to Amazon S3
+    flexmock(AWS::S3::Bucket).new_instances do |bucket|
+      bucket.should_receive(:objects).with_any_args.
+        and_return {
+          s3obj_col
+        }
+    end
+
+    time = Time.parse("2011-01-02 13:14:15 UTC").to_i
+    d.emit({"a"=>1}, time)
+    d.emit({"a"=>2}, time)
+
+    # Finally, the instance of S3AltOutput is initialized and then invoked
+    d.run
+  end
+
 
   def setup_mocks
     s3bucket = flexmock(AWS::S3::Bucket)

@@ -11,6 +11,7 @@ class S3AltOutput < Fluent::TimeSlicedOutput
     require 'zlib'
     require 'time'
     require 'tempfile'
+    require 'securerandom'
 
     @use_ssl = true
   end
@@ -24,7 +25,7 @@ class S3AltOutput < Fluent::TimeSlicedOutput
   include SetTimeKeyMixin
   config_set_default :include_time_key, false
 
-  config_set_default :buffer_chunk_limit, 256*1024*1024  # overwrite default buffer_chunk_limit
+  #config_set_default :buffer_chunk_limit, 256*1024*1024  # overwrite default buffer_chunk_limit
 
   config_param :aws_key_id, :string, :default => nil
   config_param :aws_sec_key, :string, :default => nil
@@ -32,10 +33,10 @@ class S3AltOutput < Fluent::TimeSlicedOutput
   config_param :s3_endpoint, :string, :default => nil
   config_param :s3_object_key_format, :string, :default => "%{path}%{time_slice}_%{index}.%{file_extension}"
   config_param :auto_create_bucket, :bool, :default => true
-  config_set_default :flush_interval, nil
+  #config_set_default :flush_interval, nil
   config_param :time_slice_wait, :time, :default => 10*60
 
-  attr_reader :bucket
+  attr_reader :bucket, :this_uuid
 
   include Fluent::Mixin::ConfigPlaceholders
 
@@ -62,6 +63,9 @@ class S3AltOutput < Fluent::TimeSlicedOutput
         end
       end
     end
+
+    @pid = $$
+    @this_uuid = SecureRandom.uuid
 
     @timef = TimeFormatter.new(@time_format, @localtime)
   end
@@ -112,14 +116,16 @@ class S3AltOutput < Fluent::TimeSlicedOutput
         "path" => @path,
         "time_slice" => chunk.key,
         "file_extension" => "gz",
-        "index" => i
+        "index" => i,
+        "index0" => sprintf("%04d", i),
+        "pid" => @pid,
+        "this_uuid" => @this_uuid
       }
       s3path = @s3_object_key_format.gsub(%r(%{[^}]+})) { |expr|
         values_for_s3_object_key[expr[2...expr.size-1]]
       }
       i += 1
     end while @bucket.objects[s3path].exists?
-
     tmp = Tempfile.new("s3alt-")
     w = Zlib::GzipWriter.new(tmp)
     begin
