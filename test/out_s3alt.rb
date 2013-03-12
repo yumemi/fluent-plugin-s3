@@ -1,10 +1,10 @@
 require 'fluent/test'
-require 'fluent/plugin/out_s3'
+require 'fluent/plugin/out_s3alt'
 
 require 'flexmock/test_unit'
 require 'zlib'
 
-class S3OutputTest < Test::Unit::TestCase
+class S3AltOutputTest < Test::Unit::TestCase
   def setup
     require 'aws-sdk'
     Fluent::Test.setup
@@ -20,7 +20,7 @@ class S3OutputTest < Test::Unit::TestCase
   ]
 
   def create_driver(conf = CONFIG)
-    Fluent::Test::BufferedOutputTestDriver.new(Fluent::S3Output) do
+    Fluent::Test::BufferedOutputTestDriver.new(Fluent::S3AltOutput) do
       def write(chunk)
         chunk.read
       end
@@ -62,8 +62,8 @@ class S3OutputTest < Test::Unit::TestCase
     d.emit({"a"=>1}, time)
     d.emit({"a"=>2}, time)
 
-    d.expect_format %[2011-01-02T13:14:15Z\ttest\t{"a":1,"tag":"test","time":"2011-01-02T13:14:15Z"}\n]
-    d.expect_format %[2011-01-02T13:14:15Z\ttest\t{"a":2,"tag":"test","time":"2011-01-02T13:14:15Z"}\n]
+    d.expect_format %[2011-01-02T13:14:15Z\ttest\t{"a":1,"tag":"test","time":1293974055}\n]
+    d.expect_format %[2011-01-02T13:14:15Z\ttest\t{"a":2,"tag":"test","time":1293974055}\n]
 
     d.run
   end
@@ -104,8 +104,8 @@ class S3OutputTest < Test::Unit::TestCase
     d.emit({"a"=>1}, time)
     d.emit({"a"=>2}, time)
 
-    d.expect_format %[{"a":1,"time":"2011-01-02T13:14:15Z"}\n]
-    d.expect_format %[{"a":2,"time":"2011-01-02T13:14:15Z"}\n]
+    d.expect_format %[{"a":1,"time":1293974055}\n]
+    d.expect_format %[{"a":2,"time":1293974055}\n]
 
     d.run
   end
@@ -118,8 +118,8 @@ class S3OutputTest < Test::Unit::TestCase
     d.emit({"a"=>1}, time)
     d.emit({"a"=>2}, time)
 
-    d.expect_format %[{"a":1,"tag":"test","time":"2011-01-02T13:14:15Z"}\n]
-    d.expect_format %[{"a":2,"tag":"test","time":"2011-01-02T13:14:15Z"}\n]
+    d.expect_format %[{"a":1,"tag":"test","time":1293974055}\n]
+    d.expect_format %[{"a":2,"tag":"test","time":1293974055}\n]
 
     d.run
   end
@@ -153,7 +153,7 @@ class S3OutputTest < Test::Unit::TestCase
   ]
 
   def create_time_sliced_driver(additional_conf = '')
-    d = Fluent::Test::TimeSlicedOutputTestDriver.new(Fluent::S3Output) do
+    d = Fluent::Test::TimeSlicedOutputTestDriver.new(Fluent::S3AltOutput) do
       private
 
       def check_apikeys
@@ -180,7 +180,7 @@ class S3OutputTest < Test::Unit::TestCase
                          %[2011-01-02T13:14:15Z\ttest\t{"a":2}\n],
                      data
 
-        pathname.to_s.match(%r|s3-|)
+        pathname.to_s.match(%r|s3alt-|)
       },
       {:content_type=>"application/x-gzip"})
 
@@ -210,7 +210,7 @@ class S3OutputTest < Test::Unit::TestCase
     d.emit({"a"=>1}, time)
     d.emit({"a"=>2}, time)
 
-    # Finally, the instance of S3Output is initialized and then invoked
+    # Finally, the instance of S3AltOutput is initialized and then invoked
     d.run
   end
 

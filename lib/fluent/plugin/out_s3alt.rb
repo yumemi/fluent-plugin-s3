@@ -2,8 +2,8 @@ module Fluent
 
 require 'fluent/mixin/config_placeholders'
 
-class S3Output < Fluent::TimeSlicedOutput
-  Fluent::Plugin.register_output('s3', self)
+class S3AltOutput < Fluent::TimeSlicedOutput
+  Fluent::Plugin.register_output('s3alt', self)
 
   def initialize
     super
@@ -24,12 +24,16 @@ class S3Output < Fluent::TimeSlicedOutput
   include SetTimeKeyMixin
   config_set_default :include_time_key, false
 
+  config_set_default :buffer_chunk_limit, 256*1024*1024  # overwrite default buffer_chunk_limit
+
   config_param :aws_key_id, :string, :default => nil
   config_param :aws_sec_key, :string, :default => nil
   config_param :s3_bucket, :string
   config_param :s3_endpoint, :string, :default => nil
   config_param :s3_object_key_format, :string, :default => "%{path}%{time_slice}_%{index}.%{file_extension}"
   config_param :auto_create_bucket, :bool, :default => true
+  config_set_default :flush_interval, nil
+  config_param :time_slice_wait, :time, :default => 10*60
 
   attr_reader :bucket
 
@@ -47,7 +51,7 @@ class S3Output < Fluent::TimeSlicedOutput
     else
       @format_json = false
     end
-
+    
     if use_ssl = conf['use_ssl']
       if use_ssl.empty?
         @use_ssl = true
@@ -89,8 +93,10 @@ class S3Output < Fluent::TimeSlicedOutput
       record[@tag_key] = tag
     end
     if @include_time_key
-      record[@time_key] = time_str
+      record[@time_key] = time
     end
+    #record['hogehoge_at'] = time
+    #record['time_key'] = @time_key
 
     if @format_json
       Yajl.dump(record) + "\n"
@@ -114,7 +120,7 @@ class S3Output < Fluent::TimeSlicedOutput
       i += 1
     end while @bucket.objects[s3path].exists?
 
-    tmp = Tempfile.new("s3-")
+    tmp = Tempfile.new("s3alt-")
     w = Zlib::GzipWriter.new(tmp)
     begin
       chunk.write_to(w)

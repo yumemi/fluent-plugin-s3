@@ -2,13 +2,13 @@
 $:.push File.expand_path('../lib', __FILE__)
 
 Gem::Specification.new do |gem|
-  gem.name        = "fluent-plugin-s3"
-  gem.description = "Amazon S3 output plugin for Fluent event collector"
-  gem.homepage    = "https://github.com/fluent/fluent-plugin-s3"
+  gem.name        = "fluent-plugin-s3alt"
+  gem.description = "Amazon S3 Alternative output plugin for Fluent event collector"
+  gem.homepage    = "https://github.com/yumemi/fluent-plugin-s3"
   gem.summary     = gem.description
   gem.version     = File.read("VERSION").strip
-  gem.authors     = ["Sadayuki Furuhashi"]
-  gem.email       = "frsyuki@gmail.com"
+  gem.authors     = ["Yumemi, Inc"]
+  gem.email       = "yumemi@example.com"
   gem.has_rdoc    = false
   #gem.platform    = Gem::Platform::RUBY
   gem.files       = `git ls-files`.split("\n")
