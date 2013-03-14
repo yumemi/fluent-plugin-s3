@@ -35,8 +35,9 @@ class S3AltOutput < Fluent::TimeSlicedOutput
   config_param :auto_create_bucket, :bool, :default => true
   #config_set_default :flush_interval, nil
   config_param :time_slice_wait, :time, :default => 10*60
+  config_param :time_format2, :string, :default => "%Y%m%d%H%M"
 
-  attr_reader :bucket, :this_uuid
+  attr_reader :bucket
 
   include Fluent::Mixin::ConfigPlaceholders
 
@@ -65,9 +66,9 @@ class S3AltOutput < Fluent::TimeSlicedOutput
     end
 
     @pid = $$
-    @this_uuid = SecureRandom.uuid
 
     @timef = TimeFormatter.new(@time_format, @localtime)
+    @timef2 = TimeFormatter.new(@time_format2, @localtime)
   end
 
   def start
@@ -111,6 +112,7 @@ class S3AltOutput < Fluent::TimeSlicedOutput
 
   def write(chunk)
     i = 0
+    time2 = @timef2.format(Engine.now.to_i)
     begin
       values_for_s3_object_key = {
         "path" => @path,
@@ -119,7 +121,8 @@ class S3AltOutput < Fluent::TimeSlicedOutput
         "index" => i,
         "index0" => sprintf("%04d", i),
         "pid" => @pid,
-        "this_uuid" => @this_uuid
+        "time2" => time2,
+        "this_uuid" => SecureRandom.uuid
       }
       s3path = @s3_object_key_format.gsub(%r(%{[^}]+})) { |expr|
         values_for_s3_object_key[expr[2...expr.size-1]]

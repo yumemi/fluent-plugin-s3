@@ -217,7 +217,7 @@ class S3AltOutputTest < Test::Unit::TestCase
   end
 
   S3ALT_CONF = %[
-    s3_object_key_format %{path}/%{time_slice}/%{time_slice}_%{index0}-%{this_uuid}-%{pid}.%{file_extension}
+    s3_object_key_format %{path}/%{time_slice}/%{time_slice}_%{index0}-%{pid}.%{file_extension}
     time_slice_format %Y%m%d
   ]
 
@@ -251,7 +251,7 @@ class S3AltOutputTest < Test::Unit::TestCase
     s3obj_col = flexmock(AWS::S3::ObjectCollection)
     s3obj_col.should_receive(:[]).with(
       on { |key|
-        key == "log/20110102/20110102_0000-#{d.instance.this_uuid}-#{$$}.gz"
+        key == "log/20110102/20110102_0000-#{$$}.gz"
       }).
       and_return {
         s3obj
