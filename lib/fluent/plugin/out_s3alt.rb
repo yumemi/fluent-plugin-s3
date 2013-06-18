@@ -40,7 +40,7 @@ module Fluent
 
     ## S3Send Config
     config_param :send_async, :bool, :default => false
-    config_param :send_buffer_dir, :string
+    config_param :send_buffer_dir, :string, :default => nil
     config_param :send_max_thread, :integer, :default => 5
     ##
 
