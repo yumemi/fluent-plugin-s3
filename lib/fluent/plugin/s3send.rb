@@ -57,11 +57,6 @@ module S3AltOutputModule
       meta = {'bucket' => @s3_bucket, 's3path' => s3path, 'src_path' => buffer_path, 'meta_path' => meta_path, 'content_type' => content_type}
       FileUtils.copy(src_path, buffer_path)
       File.write(meta_path, JSON.dump(meta))
-      ############# RANDOM BUG GENERATOR
-      ############# RANDOM BUG GENERATOR
-      File.open(meta_path, 'a') {|f| f.write('gomi')} if Random.rand < 0.1
-      ############# RANDOM BUG GENERATOR
-      ############# RANDOM BUG GENERATOR
       verify_file_format(buffer_path, meta_path) if @verify_file
     end
 
