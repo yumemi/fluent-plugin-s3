@@ -1,2 +1,5 @@
 .DS_Store
 .idea/
+.bundle/
+vendor/
+*.gem

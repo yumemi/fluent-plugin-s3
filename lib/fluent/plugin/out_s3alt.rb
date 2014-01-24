@@ -42,6 +42,7 @@ module Fluent
     config_param :send_async, :bool, :default => false
     config_param :send_buffer_dir, :string, :default => nil
     config_param :send_max_thread, :integer, :default => 5
+    config_param :verify_file, :bool, :default => true
     ##
 
     attr_reader :bucket
@@ -106,7 +107,8 @@ module Fluent
       @s3send ||= S3AltOutputModule::S3Send.new(@s3_options,
                                                 :buffer_dir => @send_buffer_dir,
                                                 :s3_bucket => @s3_bucket,
-                                                :max_conn => @send_max_thread)
+                                                :max_conn => @send_max_thread,
+                                                :verify_file => @verify_file)
     end
 
     def format(tag, time, record)
@@ -164,6 +166,7 @@ module Fluent
         tmp.close(true) rescue nil
         w.close rescue nil
       end
+      $log.debug('Emit OK')
     end
 
     private

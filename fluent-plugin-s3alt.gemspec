@@ -22,4 +22,5 @@ Gem::Specification.new do |gem|
   gem.add_dependency "fluent-mixin-config-placeholders", "~> 0.2.0"
   gem.add_development_dependency "rake", ">= 0.9.2"
   gem.add_development_dependency "flexmock", ">= 1.2.0"
+  gem.add_development_dependency "rspec", "~> 2.14"
 end

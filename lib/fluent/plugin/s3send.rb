@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require 'json'
+require 'zlib'
 require 'securerandom'
 
 require 'aws-sdk'
@@ -30,6 +31,8 @@ module S3AltOutputModule
     end
   end
 
+  class VerifyWarning < RuntimeError
+  end
 
   class S3Send
     META_SUFFIX = 's3send_meta'
@@ -40,6 +43,7 @@ module S3AltOutputModule
       @s3_bucket = config[:s3_bucket]
       @max_conn = config[:max_conn] || 5
       @debug = config[:debug]
+      @verify_file = config[:verify_file]
       FileUtils.makedirs(@buffer_dir)
       @stop_thread = false
       @running = RunningTable.new
@@ -53,6 +57,33 @@ module S3AltOutputModule
       meta = {'bucket' => @s3_bucket, 's3path' => s3path, 'src_path' => buffer_path, 'meta_path' => meta_path, 'content_type' => content_type}
       FileUtils.copy(src_path, buffer_path)
       File.write(meta_path, JSON.dump(meta))
+      verify_file_format(buffer_path, meta_path) if @verify_file
+    end
+
+    def verify_file_format(buffer_path, meta_path)
+      begin
+        JSON.parse(File.read(meta_path))
+      rescue
+        $log.warn("fail to parse meta file #{meta_path}")
+        remove_files(buffer_path, meta_path)
+        raise VerifyWarning.new
+      end
+
+      begin
+        File.open(buffer_path) do |f|
+          Zlib::GzipReader.new(f).read.size
+        end
+      rescue
+        $log.warn("fail to parse gzip #{buffer_path}")
+        remove_files(buffer_path, meta_path)
+        raise VerifyWarning.new
+      end
+      true
+    end
+
+    def remove_files(buffer_path, meta_path)
+      File.delete(buffer_path)
+      File.delete(meta_path)
     end
 
     def run
