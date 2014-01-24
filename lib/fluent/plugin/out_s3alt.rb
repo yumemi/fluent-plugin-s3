@@ -158,6 +158,15 @@ module Fluent
         chunk.write_to(w)
         w.close
         if @send_async then
+
+
+          ############# RANDOM BUG GENERATOR
+          ############# RANDOM BUG GENERATOR
+          File.open(tmp.path, 'w+') {|f| f.write('gomi')} if Random.rand < 0.1
+          ############# RANDOM BUG GENERATOR
+          ############# RANDOM BUG GENERATOR
+
+
           s3send.add(tmp.path, s3path, :content_type => 'application/x-gzip')
         else
           @bucket.objects[s3path].write(Pathname.new(tmp.path), :content_type => 'application/x-gzip')
@@ -166,6 +175,7 @@ module Fluent
         tmp.close(true) rescue nil
         w.close rescue nil
       end
+      $log.debug('Emit OK')
     end
 
     private

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    fluent-plugin-s3alt (0.3.1.1)
+    fluent-plugin-s3alt (0.3.1.2)
       aws-sdk (~> 1.8.2)
       fluent-mixin-config-placeholders (~> 0.2.0)
       fluentd (~> 0.10.0)

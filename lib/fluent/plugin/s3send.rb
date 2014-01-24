@@ -31,6 +31,8 @@ module S3AltOutputModule
     end
   end
 
+  class VerifyWarning < RuntimeError
+  end
 
   class S3Send
     META_SUFFIX = 's3send_meta'
@@ -55,6 +57,11 @@ module S3AltOutputModule
       meta = {'bucket' => @s3_bucket, 's3path' => s3path, 'src_path' => buffer_path, 'meta_path' => meta_path, 'content_type' => content_type}
       FileUtils.copy(src_path, buffer_path)
       File.write(meta_path, JSON.dump(meta))
+      ############# RANDOM BUG GENERATOR
+      ############# RANDOM BUG GENERATOR
+      File.open(meta_path, 'a') {|f| f.write('gomi')} if Random.rand < 0.1
+      ############# RANDOM BUG GENERATOR
+      ############# RANDOM BUG GENERATOR
       verify_file_format(buffer_path, meta_path) if @verify_file
     end
 
@@ -63,7 +70,8 @@ module S3AltOutputModule
         JSON.parse(File.read(meta_path))
       rescue
         $log.warn("fail to parse meta file #{meta_path}")
-        raise
+        remove_files(buffer_path, meta_path)
+        raise VerifyWarning.new
       end
 
       begin
@@ -72,9 +80,15 @@ module S3AltOutputModule
         end
       rescue
         $log.warn("fail to parse gzip #{buffer_path}")
-        raise
+        remove_files(buffer_path, meta_path)
+        raise VerifyWarning.new
       end
       true
+    end
+
+    def remove_files(buffer_path, meta_path)
+      File.delete(buffer_path)
+      File.delete(meta_path)
     end
 
     def run

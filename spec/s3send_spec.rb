@@ -38,6 +38,19 @@ describe S3AltOutputModule::S3Send do
       expect(@obj.add(@src_path, 's3path')).to be true
     end
 
+    it 'should remain both files if success' do
+      meta_path = nil
+      File.stub(:write) {|path, data|
+        meta_path = path
+        File.open(path, 'w') do |f|
+          f.write(data)
+        end
+      }
+      @obj.add(@src_path, 's3path')
+      expect(File.exist?(meta_path)).to be true
+      expect(File.exist?(meta_path.split('.')[0])).to be true
+    end
+
     it 'should raise if meta_file is not json format' do
       File.stub(:write) {|path, data|
         File.open(path, 'w') do |f|
@@ -68,6 +81,34 @@ describe S3AltOutputModule::S3Send do
       File.open(@src_path, 'w+') {|f| f.write('gomi')}
       expect($log).to receive(:warn)
       expect{@obj.add(@src_path, 's3path')}.to raise_error
+    end
+
+    it 'should remove both files if raise by meta file error' do
+      meta_path = nil
+      File.stub(:write) {|path, data|
+        meta_path = path
+        File.open(path, 'w') do |f|
+          f.write(data)
+          f.write('error')
+        end
+      }
+      expect{@obj.add(@src_path, 's3path')}.to raise_error
+      expect(File.exist?(meta_path)).to be false
+      expect(File.exist?(meta_path.split('.')[0])).to be false
+    end
+
+    it 'should remove both files if raise by gzip file error' do
+      meta_path = nil
+      File.stub(:write) {|path, data|
+        meta_path = path
+        File.open(path, 'w') do |f|
+          f.write(data)
+        end
+      }
+      File.open(@src_path, 'w+') {|f| f.write('gomi')}
+      expect{@obj.add(@src_path, 's3path')}.to raise_error
+      expect(File.exist?(meta_path)).to be false
+      expect(File.exist?(meta_path.split('.')[0])).to be false
     end
   end
 end
